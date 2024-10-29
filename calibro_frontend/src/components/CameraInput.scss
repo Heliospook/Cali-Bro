@@ -1,0 +1,22 @@
+.CameraInput{
+    margin: 5vh 10vh;
+    min-height: 80vh;
+    flex-direction: column;
+    // background-color: green;
+    .uploadImage{
+        min-width: 100%;
+        min-height: 100%;
+        color : black;
+        .uploadbox{
+            border-style: dotted;
+            border-width: 2px;
+            border-color: black;
+            margin : auto;
+            width: 80%;
+            padding : 10vh 2vw;
+            .fileinput{
+                margin : 4vh;
+            }
+        }
+    }
+}
