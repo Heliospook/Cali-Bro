@@ -3,6 +3,7 @@ import "./HomographyInput.scss"
 import storage from '../firebase_storage';
 import {ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import ImageMarker, { Marker } from 'react-image-marker';
+import axios from 'axios'
 
 const handleUpload = (file, setProgress, setImage) => {
     if (!file) return;
@@ -39,16 +40,12 @@ const uploadImage = (setImageA, setImageB, setStage, method, setMethod)=>{
         handleUpload(fileB, setProgressB, setImageB)
     }
 
-    useEffect(()=>{
-        console.log(progressA, progressB)
-        if(progressA >= 100 && progressB >= 100){
-            if(method == "manual"){
-                setStage(1)
-            }else if(method == "automatic"){
-                setStage(2)
-            }
+    useEffect(() => {
+        if (progressA >= 100 && progressB >= 100) {
+            setStage(1);
         }
-    }, [progressA, progressB])
+    }, [progressA, progressB]);
+    
 
     return <div className="row d-flex align-items-center justify-content-center">
         <div className="uploadImage col-6">
@@ -94,10 +91,7 @@ const uploadImage = (setImageA, setImageB, setStage, method, setMethod)=>{
     </div>
 }
 
-const markPoints = (imageA, imageB, setInfo, setStage)=>{
-    const [markersA, setMarkersA] = useState([])
-    const [markersB, setMarkersB] = useState([])
-
+const markPoints = (imageA, imageB, setInfo, setStage, markersA, setMarkersA, markersB, setMarkersB)=>{
     const clearImage = (which)=>{
         if(which) setMarkersA([])
         else setMarkersB([])
@@ -129,7 +123,7 @@ const markPoints = (imageA, imageB, setInfo, setStage)=>{
             "pointsA" : markersA,
             "pointsB" : markersB,
         })
-        setStage(2)
+        setStage(3)
     }
 
     return <div className="markPoints row">
@@ -184,19 +178,31 @@ const showResults = ()=>{
 
 
 const HomographyInput = ()=>{
-    const [stage, setStage] = useState(1)
+    const [stage, setStage] = useState(0)
     const [imageA, setImageA] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
     const [imageB, setImageB] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
     const [method, setMethod] = useState("manual")
     const [info, setInfo] = useState([])
+    const [markersA, setMarkersA] = useState([])
+    const [markersB, setMarkersB] = useState([])
 
-    const stageMap = {
-        0 : uploadImage(setImageA, setImageB, setStage, method, setMethod),
-        1 : markPoints(imageA, imageB, setInfo, setStage),
-        2 : showResults()
-    };
-    return <div className="HomographyInput">
-        {stageMap[stage]}
+    if(stage == 0){
+        return <div className="HomographyInput">
+            {uploadImage(setImageA, setImageB, setStage, method, setMethod)}
+        </div>
+    }
+    if(stage == 1){
+        return <div className="HomographyInput">
+            {markPoints(imageA, imageB,  setInfo, setStage, markersA, setMarkersA, markersB, setMarkersB)}
+        </div>
+    }
+    if(stage == 2){
+        return <div className="HomographyInput">
+            {showResults()}
+        </div>
+    }
+    return <div className="waitingDiv d-flex justify-content-center align items-center">
+        <div className="spinner-border" role="status"></div>
     </div>
 }
 
