@@ -1,4 +1,4 @@
-.CameraInput{
+.HomographyInput{
     margin: 5vh 10vh;
     min-height: 80vh;
     flex-direction: column;
@@ -9,8 +9,7 @@
     }
     // background-color: green;
     .uploadImage{
-        min-width: 100%;
-        min-height: 100%;
+        // min-height: 40%;
         color : black;
         .uploadbox{
             border-style: dotted;
