@@ -2,6 +2,11 @@
     margin: 5vh 10vh;
     min-height: 80vh;
     flex-direction: column;
+    .btn{
+        max-width: 20vw;
+        margin : 10px 30px;
+        padding : 10px 20px;
+    }
     // background-color: green;
     .uploadImage{
         min-width: 100%;
@@ -18,5 +23,32 @@
                 margin : 4vh;
             }
         }
+    }
+    .testImageCol{
+        cursor: crosshair;
+        .testImage{
+            // max-height: 70vh;
+            // margin : 10px;
+            // width: auto;
+        }
+    }
+    .table{
+        margin : 10px;
+    }
+    .optiondiv{
+        margin : 2px 10px;
+        .optionlbl{
+            margin : 5px; 
+        }
+    }
+    .waitingDiv{
+        min-height: 70vh;
+        width: 100vw;
+        .spinner-border{
+            margin-top: 30vh;
+        }
+    }
+    .result{
+        min-height: 90vh;
     }
 }

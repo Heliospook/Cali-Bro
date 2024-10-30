@@ -3,8 +3,9 @@ import "./HomographyInput.scss"
 import storage from '../firebase_storage';
 import {ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import ImageMarker, { Marker } from 'react-image-marker';
+import axios from "axios";
 
-const handleUpload = (file, setProgress, setImage) => {
+const handleUpload = (file, setProgress, setImage, setDone) => {
     if (!file) return;
     const storageRef = ref(storage, `uploads/${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -21,34 +22,80 @@ const handleUpload = (file, setProgress, setImage) => {
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             setImage(downloadURL);
+            setDone(true)
         });
       }
     );
 };
 
-const uploadImage = (setImageA, setImageB, setStage, method, setMethod)=>{
+const setMarkers = (pointsA, pointsB, setMarkersA, setMarkersB, wa, ha, wb, hb)=>{
+    var n = Math.min(pointsA.length, pointsB.length)
+    var markersA = [], markersB = []
+    console.log("points", pointsA, pointsB)
+    console.log(wa, ha, wb, hb)
+    for(var i = 0; i < n; i++){
+        markersA.push({
+            left : pointsA[i][0] * 100/ wa,
+            top : pointsA[i][1] * 100/ ha,
+            id : i + 1
+        })
+        markersB.push({
+            left : pointsB[i][0] * 100 / wb,
+            top : pointsB[i][1] * 100 / hb,
+            id : i + 1
+        })
+    }
+    console.log("markers", markersA, markersB)
+    setMarkersA(markersA)
+    setMarkersB(markersB)
+}
+
+const uploadImage = (
+    imageA, setImageA, 
+    imageB, setImageB,
+    method, setMethod,
+    stage, setStage,
+    setMarkersA, setMarkersB
+)=>{
     const [fileA, setFileA] = useState(null);
     const [fileB, setFileB] = useState(null);
 
     const [progressA, setProgressA] = useState(0);
     const [progressB, setProgressB] = useState(0);
 
+    const [doneA, setDoneA] = useState(false);
+    const [doneB, setDoneB] = useState(false);
 
     const submitViews = ()=>{
-        handleUpload(fileA, setProgressA, setImageA)
-        handleUpload(fileB, setProgressB, setImageB)
+        handleUpload(fileA, setProgressA, setImageA, setDoneA)
+        handleUpload(fileB, setProgressB, setImageB, setDoneB)
     }
 
-    useEffect(()=>{
-        console.log(progressA, progressB)
-        if(progressA >= 100 && progressB >= 100){
-            if(method == "manual"){
-                setStage(1)
-            }else if(method == "automatic"){
-                setStage(2)
+    useEffect(() => {
+        if (doneA && doneB && (typeof imageA === "string")  && (typeof imageB === "string")) {  
+            setStage(4)
+            const postBody = {
+                imageA: imageA,
+                imageB: imageB
+            };
+            if (method === "automatic") {
+                axios.post('http://localhost:5000/match', postBody)
+                    .then(response => {
+                        var result = response.data
+                        console.log(result)
+                        setMarkers(result["imageA"], result["imageB"], setMarkersA, setMarkersB, result["widthA"], result["heightA"], result["widthB"], result["heightB"])
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    })
+                    .finally(() => {
+                        setStage(1);
+                    });
+            } else {
+                setStage(1);
             }
         }
-    }, [progressA, progressB])
+    }, [doneA, doneB, imageA, imageB]); 
 
     return <div className="row d-flex align-items-center justify-content-center">
         <div className="uploadImage col-6">
@@ -94,9 +141,7 @@ const uploadImage = (setImageA, setImageB, setStage, method, setMethod)=>{
     </div>
 }
 
-const markPoints = (imageA, imageB, setInfo, setStage)=>{
-    const [markersA, setMarkersA] = useState([])
-    const [markersB, setMarkersB] = useState([])
+const markPoints = (imageA, imageB, setInfo, setStage, markersA, markersB, setMarkersA, setMarkersB)=>{
 
     const clearImage = (which)=>{
         if(which) setMarkersA([])
@@ -145,7 +190,10 @@ const markPoints = (imageA, imageB, setInfo, setStage)=>{
                 <ImageMarker
                     src={imageA}
                     markers={markersA}
-                    onAddMarker={(marker) => setMarkersA([...markersA, marker])}
+                    onAddMarker={(marker) =>{
+                        setMarkersA([...markersA, marker])
+                        console.log("markersA", markersA)
+                    }}
                     extraClass = "testImage"
                 /> 
         </div>
@@ -165,7 +213,7 @@ const markPoints = (imageA, imageB, setInfo, setStage)=>{
                     extraClass = "testImage"
                 /> 
         </div>
-        <div className="col-12">
+        <div className="col-12 m-4">
             <b>Note : </b> Please pick atleast 4 point correspondences. The number of points picked should be the same for both images. The points numbered the same constitute a correspondence.
         </div>
         <div className="col-12 d-flex justify-content-center">
@@ -182,18 +230,32 @@ const showResults = ()=>{
     </div>
 }
 
+const waitingScreen = ()=>{
+    return <div className="waitingDiv d-flex justify-content-center align items-center">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
 
 const HomographyInput = ()=>{
-    const [stage, setStage] = useState(1)
+    const [stage, setStage] = useState(0)
     const [imageA, setImageA] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
     const [imageB, setImageB] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
     const [method, setMethod] = useState("manual")
     const [info, setInfo] = useState([])
+    const [markersA, setMarkersA] = useState([])
+    const [markersB, setMarkersB] = useState([])
 
     const stageMap = {
-        0 : uploadImage(setImageA, setImageB, setStage, method, setMethod),
-        1 : markPoints(imageA, imageB, setInfo, setStage),
-        2 : showResults()
+        0 : uploadImage(
+            imageA, setImageA, 
+            imageB, setImageB,
+            method, setMethod,
+            stage, setStage,
+            setMarkersA, setMarkersB
+        ),
+        1 : markPoints(imageA, imageB, setInfo, setStage, markersA, markersB, setMarkersA, setMarkersB),
+        2 : showResults(),
+        4 : waitingScreen()
     };
     return <div className="HomographyInput">
         {stageMap[stage]}
