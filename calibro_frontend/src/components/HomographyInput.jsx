@@ -4,6 +4,8 @@ import storage from '../firebase_storage';
 import {ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import ImageMarker, { Marker } from 'react-image-marker';
 import axios from "axios";
+import { ImageOverlayWithHomography } from "../utils/visualization";
+import Matrix from "./Matrix";
 
 const handleUpload = (file, setProgress, setImage, setDone) => {
     if (!file) return;
@@ -31,8 +33,6 @@ const handleUpload = (file, setProgress, setImage, setDone) => {
 const setMarkers = (pointsA, pointsB, setMarkersA, setMarkersB, wa, ha, wb, hb)=>{
     var n = Math.min(pointsA.length, pointsB.length)
     var markersA = [], markersB = []
-    console.log("points", pointsA, pointsB)
-    console.log(wa, ha, wb, hb)
     for(var i = 0; i < n; i++){
         markersA.push({
             left : pointsA[i][0] * 100/ wa,
@@ -45,7 +45,6 @@ const setMarkers = (pointsA, pointsB, setMarkersA, setMarkersB, wa, ha, wb, hb)=
             id : i + 1
         })
     }
-    console.log("markers", markersA, markersB)
     setMarkersA(markersA)
     setMarkersB(markersB)
 }
@@ -82,7 +81,7 @@ const uploadImage = (
                 axios.post('http://localhost:5000/match', postBody)
                     .then(response => {
                         var result = response.data
-                        console.log(result)
+                        // console.log(result)
                         setMarkers(result["imageA"], result["imageB"], setMarkersA, setMarkersB, result["widthA"], result["heightA"], result["widthB"], result["heightB"])
                     })
                     .catch(error => {
@@ -192,7 +191,6 @@ const markPoints = (imageA, imageB, setInfo, setStage, markersA, markersB, setMa
                     markers={markersA}
                     onAddMarker={(marker) =>{
                         setMarkersA([...markersA, marker])
-                        console.log("markersA", markersA)
                     }}
                     extraClass = "testImage"
                 /> 
@@ -214,7 +212,7 @@ const markPoints = (imageA, imageB, setInfo, setStage, markersA, markersB, setMa
                 /> 
         </div>
         <div className="col-12 m-4">
-            <b>Note : </b> Please pick atleast 4 point correspondences. The number of points picked should be the same for both images. The points numbered the same constitute a correspondence.
+            <b>Note : </b> Please pick atleast 4 point correspondences. The number of points picked should be the same for both images. The points numbered the same constitute a correspondence. Pick more points for a better match (RANSAC is being used behind the scenes)
         </div>
         <div className="col-12 d-flex justify-content-center">
             <button className="btn btn-dark" disabled = {validate()} onClick={submit}>
@@ -224,24 +222,75 @@ const markPoints = (imageA, imageB, setInfo, setStage, markersA, markersB, setMa
     </div>
 }
 
-const showResults = ()=>{
-    return <div className="showResults">
-        Showing results
-    </div>
-}
 
 const waitingScreen = ()=>{
     return <div className="waitingDiv d-flex justify-content-center align items-center">
-        <div class="spinner-border" role="status"></div>
+        <div className="spinner-border" role="status"></div>
+    </div>
+}
+const showResults = (info, imageA, imageB)=>{
+    const [waiting, setWaiting] = useState(true)
+    const [H, setH] = useState(null)
+    const [error, setError] = useState(null)
+
+    useEffect(()=>{
+        if(info["pointsA"] && waiting){
+            var postBody = {"pointsA" : [], "pointsB" : [], "method" : "linear"}
+            info.pointsA.forEach((p)=>{
+                postBody.pointsA.push([p.left, p.top])
+            })
+            info.pointsB.forEach((p)=>{
+                postBody.pointsB.push([p.left, p.top])
+            })
+
+            // postBody = {"pointsA":[[56.88763516690174,63.12490205296975],[56.511518570756934,24.761009246199656],[67.04278326281147,14.731233349004858],[65.72637517630466,44.56981664315938],[27.174424071462152,19.49537690017239],[31.311706629055006,54.348848142924304],[44.66384579219558,10.719322990126939]],"pointsB":[[42.73624823695346,67.88904560413728],[36.530324400564176,34.79078514339445],[55.524212505876825,24.008776053910047],[57.592853784673245,51.84140416862561],[20.73342736248237,31.531107976806144],[26.375176304654442,58.110014104372354],[38.4109073812882,21.501332079611345]],"method":"linear"}
+            // console.log("postbody", JSON.stringify(postBody))
+
+            axios.post('http://localhost:5000/homography', postBody)
+                    .then(response => {
+                        var result = response.data
+                        // console.log(result)
+                        setH(result.H)
+                    })
+                    .catch(error => {
+                        var result = response.data
+                        setError(result["message"])
+                    })
+                    .finally(() => {
+                        setWaiting(false)
+                    });
+        }
+    }, [info, waiting])
+    if(waiting){
+        return <div className="waitingDiv d-flex justify-content-center align items-center">
+            <div className="spinner-border" role="status"></div>
+        </div>
+    }
+    if(error != null){
+        return <div className="result">
+            {error}
+        </div>
+    }
+    return <div className="showResults row">
+        <div className="col-">
+            <ImageOverlayWithHomography imageUrl1={imageA} imageUrl2={imageB} homographyMatrix={H}/>
+        </div>
+        <div className="col-6">
+            <div className="row">
+                H = <Matrix mat = {H} n = {3} m = {3}/>
+            </div>
+        </div>
     </div>
 }
 
 const HomographyInput = ()=>{
     const [stage, setStage] = useState(0)
-    const [imageA, setImageA] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
-    const [imageB, setImageB] = useState("https://upload.wikimedia.org/wikipedia/commons/6/61/Rubiks_cube_solved.jpg")
+    const [imageA, setImageA] = useState("https://firebasestorage.googleapis.com/v0/b/cali-bro.appspot.com/o/uploads%2Fcube1.jpg?alt=media&token=1be24181-db5c-4edd-94aa-2b8afaf2a000")
+    const [imageB, setImageB] = useState("https://firebasestorage.googleapis.com/v0/b/cali-bro.appspot.com/o/uploads%2Fcube2.jpg?alt=media&token=d044cc6a-f975-4793-b51b-e25b4163d124")
     const [method, setMethod] = useState("manual")
-    const [info, setInfo] = useState([])
+    const [info, setInfo] = useState({
+        // "pointsA" : []
+    })
     const [markersA, setMarkersA] = useState([])
     const [markersB, setMarkersB] = useState([])
 
@@ -254,7 +303,7 @@ const HomographyInput = ()=>{
             setMarkersA, setMarkersB
         ),
         1 : markPoints(imageA, imageB, setInfo, setStage, markersA, markersB, setMarkersA, setMarkersB),
-        2 : showResults(),
+        2 : showResults(info, imageA, imageB),
         4 : waitingScreen()
     };
     return <div className="HomographyInput">

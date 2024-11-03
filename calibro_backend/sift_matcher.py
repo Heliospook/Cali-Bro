@@ -2,6 +2,7 @@ import cv2 as cv
 from random import sample
 
 MATCH_RATIO = 0.9
+MAX_MATCHES = 8
 
 def getTopMatches(img1, img2):
     sift = cv.SIFT_create()
@@ -17,8 +18,8 @@ def getTopMatches(img1, img2):
         if ratio < MATCH_RATIO:
             good_matches.append((m, n, ratio))
     
-    if len(good_matches) >= 5:
-        good_matches = sorted(good_matches, key=lambda x: x[2])[:5]
+    if len(good_matches) >= MAX_MATCHES:
+        good_matches = sorted(good_matches, key=lambda x: x[2])[:MAX_MATCHES]
         
     matched_points = {
         "imageA": [(int(kp1[m.queryIdx].pt[0]), int(kp1[m.queryIdx].pt[1])) for (m, _, _) in good_matches],
@@ -42,8 +43,8 @@ def getRandomMatches(img1, img2):
         if m.distance < MATCH_RATIO * n.distance:
             good_matches.append((m.trainIdx, m.queryIdx))
     
-    if len(good_matches) >= 5 :
-        good_matches = sample(good_matches, 5)
+    if len(good_matches) >= MAX_MATCHES :
+        good_matches = sample(good_matches, MAX_MATCHES)
     
     print(img1.shape, img2.shape)
     
