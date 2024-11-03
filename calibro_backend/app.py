@@ -11,7 +11,7 @@ from camera_calibration import compute_camera_matrix_with_svd, compute_camera_ma
 from homography import ransac_homography
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://cali-bro.web.app"}})
 
 def download_image(url):
     response = requests.get(url)
