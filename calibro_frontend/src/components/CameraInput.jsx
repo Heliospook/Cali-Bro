@@ -186,7 +186,7 @@ const showOutput = (info, image)=>{
             // console.log(JSON.stringify(postBody))
             // postBody.points2D = [[22.32024702249669, 76.51815909425085], [21.261579179532422, 60.99103073077489], [32.73048081164534, 70.87193059844141], [15.791795324217027, 69.69563299514778], [32.377591530657256, 57.22687840023526], [15.262461402734893, 56.52109983825908]]
             // // console.log("postbody", postBody, info.markers)
-            axios.post('http://localhost:5000/calibrate', postBody)
+            axios.post('https://grown-pigeon-busy.ngrok-free.app/calibrate', postBody)
                     .then(response => {
                         var result = response.data
                         // console.log(result)

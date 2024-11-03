@@ -78,7 +78,7 @@ const uploadImage = (
                 imageB: imageB
             };
             if (method === "automatic") {
-                axios.post('http://localhost:5000/match', postBody)
+                axios.post('https://grown-pigeon-busy.ngrok-free.app/match', postBody)
                     .then(response => {
                         var result = response.data
                         // console.log(result)
@@ -246,7 +246,7 @@ const showResults = (info, imageA, imageB)=>{
             // postBody = {"pointsA":[[56.88763516690174,63.12490205296975],[56.511518570756934,24.761009246199656],[67.04278326281147,14.731233349004858],[65.72637517630466,44.56981664315938],[27.174424071462152,19.49537690017239],[31.311706629055006,54.348848142924304],[44.66384579219558,10.719322990126939]],"pointsB":[[42.73624823695346,67.88904560413728],[36.530324400564176,34.79078514339445],[55.524212505876825,24.008776053910047],[57.592853784673245,51.84140416862561],[20.73342736248237,31.531107976806144],[26.375176304654442,58.110014104372354],[38.4109073812882,21.501332079611345]],"method":"linear"}
             // console.log("postbody", JSON.stringify(postBody))
 
-            axios.post('http://localhost:5000/homography', postBody)
+            axios.post('https://grown-pigeon-busy.ngrok-free.app/homography', postBody)
                     .then(response => {
                         var result = response.data
                         // console.log(result)
